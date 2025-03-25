@@ -1,7 +1,7 @@
 class Todo {
     constructor(data, selector) {
         this._data = data;
-        this._templateElement = document.querySelector(selector);
+        this._templateElement = selector;
     }
 
     _setEventListeners() {
@@ -32,7 +32,7 @@ class Todo {
 
          todoNameEl.textContent = this._data.name;
          
-         const dueDate = new Date(data.date);
+         const dueDate = new Date(this._data.date);
          if (!isNaN(dueDate)) {
            todoDate.textContent = `Due: ${dueDate.toLocaleString("en-US", {
              year: "numeric",
@@ -45,7 +45,7 @@ class Todo {
                todoElement.remove();
          });
         
-         this._generateCheckboxEl();
+         this.generateCheckboxEl();
          this._setEventListeners();
          return  this._todoElement;
     }
