@@ -1,65 +1,79 @@
 import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
-console.log(uuidv4());
 import { initialTodos, validationConfig } from "../utils/constants.js";
 import Todo from "../components/Todo.js";
 import FormValidator from "../components/FormValidator.js";
+import Section from "../components/Section.js";
+import PopupWithForm from "../components/PopupWithForm.js";
+import TodoCounter from '../components/TodoCounter.js';
+
 
 const addTodoButton = document.querySelector(".button_action_add");
-const addTodoPopup = document.querySelector("#add-todo-popup");
 const addTodoForm = document.forms["add-todo-form"];
-const addTodoCloseBtn = addTodoPopup.querySelector(".popup__close");
-const todoTemplate = document.querySelector("#todo-template");
-const todosList = document.querySelector(".todos__list");
+const todosListSelector = ".todos__list";
 
-const openModal = (modal) => {
-  modal.classList.add("popup_visible");
-};
+const todoCounter = new TodoCounter(initialTodos, '.counter__text');
 
-const closeModal = (modal) => {
-  modal.classList.remove("popup_visible");
-};
 
-// The logic in this function should all be handled in the Todo class.
-const generateTodo = (data) => {
-const todo = new Todo(data, "#todo-template");
-const todoElement = todo.getView();
-return todoElement;
+function handleCheck(completed)  {
+    todoCounter.updateCompleted( completed);
 }
 
-const renderTodo = (item) => {
-  const todo = generateTodo(item);
-  todosList.append(todo);
+function handleDelete(completed)  {
+  todoCounter.updateTotal(false); // decrement total count
+  if (completed) {
+    // Decrement completed count only if todo was completed
+    todoCounter.updateCompleted(false);
+  }
+}
+
+const generateTodo = (data) => {
+  const todo = new Todo(data, "#todo-template", handleCheck, handleDelete);
+  const todoElement = todo.getView(); return todoElement;
+  
 };
 
-initialTodos.forEach((item) => {
-  renderTodo(item);
+
+const section = new Section({
+  items: initialTodos,
+  renderer: (item) => {
+    const todoElement = generateTodo(item);
+    section.addItem(todoElement);
+  },
+  containerSelector: todosListSelector,
 });
 
-addTodoButton.addEventListener("click", () => {
-  openModal(addTodoPopup);
-});
+section.renderItems();
 
-addTodoCloseBtn.addEventListener("click", () => {
-  closeModal(addTodoPopup);
-});
 
-addTodoForm.addEventListener("submit", (evt) => {
-  evt.preventDefault();
-  const name = evt.target.name.value;
-  const dateInput = evt.target.date.value;
+const addTodoPopup = new PopupWithForm(
+  "#add-todo-popup",
+  (data) => {
+    const name = data.name.trim();
+    const dateInput = data.date;
+    if (!name) return;
 
-  const date = new Date(dateInput);
-  date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+    const date = dateInput ? new Date(dateInput) : null;
+    if (date) {
+      date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+    }
+    const newTodoData = { name, date, id: uuidv4() };
+    const todoElement = generateTodo(newTodoData);
+    section.addItem(todoElement);
 
-  const id = uuidv4();
-  const values = { name, date, id };
+    todoCounter.updateTotal(true); 
+    
+    addTodoForm.reset();
 
-  renderTodo(values);
-  closeModal(addTodoPopup);
-});
+    addTodoPopup.close();
+  }
+);
+
+
+addTodoPopup.setEventListeners();
+
+
+addTodoButton.addEventListener("click", () => addTodoPopup.open());
 
 
 const newTodoValidator = new FormValidator(addTodoForm, validationConfig);
 newTodoValidator.enableValidation();
-
-const todoTemplateValidator = new FormValidator(todoTemplate, validationConfig);
